@@ -1,17 +1,13 @@
 package com.example.methodbletest
 
-import android.os.BatteryManager
-import android.os.Build.VERSION
+
 import android.os.Build.VERSION_CODES
 import androidx.annotation.NonNull
-import androidx.annotation.XmlRes
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import android.util.Log
 import androidx.annotation.UiThread
-
 //ChatServerの内容////////////////////////////////////////////////////
 import android.Manifest
 import android.app.Application
@@ -33,62 +29,20 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.ParcelUuid
-//import android.util.Log
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
-////////////////////////////////////////////////////////////////////
-
 //ScanActivityの内容///////////////////////////////////////////////
-//import android.Manifest
-//import android.app.Application
-//import android.bluetooth.BluetoothAdapter
-//import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.ContentValues.TAG
-//import android.content.pm.PackageManager
-//import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-//import android.os.ParcelUuid
-//import android.util.Log
-//import androidx.core.app.ActivityCompat
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-//import androidx.recyclerview.widget.LinearLayoutManager
-//import androidx.recyclerview.widget.RecyclerView
-/////////////////////////////////////////////////////////////////
-
 //AdvertiseActivityの内容////////////////////////////////////////////
-import android.content.ContentValues.TAG
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.*
-
-//import androidx.appcompat.app.AppCompatActivity
-//import android.os.Bundle
-//import android.util.Log
-///////////////////////////////////////////////////////////////////
-
 //RecyclerAdopterの内容//////////////////////////////////////////////
-//import android.bluetooth.BluetoothDevice
-//import android.view.LayoutInflater
-//import android.view.View
-//import android.view.ViewGroup
-//import android.widget.TextView
-//import androidx.recyclerview.widget.RecyclerView
-////////////////////////////////////////////////////////////////////
-
 import java.util.UUID
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 
 
@@ -133,8 +87,6 @@ class MainActivity : FlutterActivity() {
     private var gatt: BluetoothGatt? = null
     private var messageCharacteristic: BluetoothGattCharacteristic? = null
 
-    //private var Testmessage: String = "test!!"
-
     //methodchannel受け取り
     @RequiresApi(VERSION_CODES.LOLLIPOP)
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -149,7 +101,7 @@ class MainActivity : FlutterActivity() {
 
                 startServer(application)
 
-                result.success(n)
+                //result.success(n)
             } else if (methodCall.method == "Scan") {
                 if (!adapter.isMultipleAdvertisementSupported) {
                     Log.d(TAG, "startScan: failed")
@@ -195,32 +147,19 @@ class MainActivity : FlutterActivity() {
                     }
                     scanner?.startScan(scanFilters, scanSettings, scanCallback)
                 }
-
-
                 android.util.Log.d(TAG, "configureFlutterEngine: address" + scanResults.values)
 
             } else if (methodCall.method == "connect") {
                 Log.d(TAG, "configureFlutterEngine: connect start")
-                val deviceinfomap = methodCall.arguments<HashMap<String,String>>()!!
+                val deviceinfomap = methodCall.arguments<HashMap<String, String>>()!!
                 val address = deviceinfomap.keys.first()
                 val message = deviceinfomap.values.first()
                 Log.d(TAG, "configureFlutterEngine: address : $address , message : $message")
-                connectfromaddress(address,message,application)
-//                var address : String? = null
-//                var message : String? = null
-//                for (map in deviceinfomap){
-//                    address = map.value
-//                    message = map.key
-//                }
-//                if (address != null) {
-//                    if (message != null) {
-//                        connectfromaddress(address,message, application)
-//                    }
-//                }
+                connectfromaddress(address, application)
 
-
-
-
+            } else if (methodCall.method == "WriteMessage") {
+                val message = methodCall.arguments<String>()!!
+                sendMessage(message, application)
 
             } else {
                 result.notImplemented()
@@ -337,7 +276,7 @@ class MainActivity : FlutterActivity() {
     }
 
     @RequiresApi(VERSION_CODES.JELLY_BEAN_MR2)
-    fun connectToChatDevice(device: BluetoothDevice, message: String, app: Application) {
+    fun connectToChatDevice(device: BluetoothDevice, app: Application) {
         gattClientCallback = GattClientCallback(app)
         if (ActivityCompat.checkSelfPermission(
                 app,
@@ -347,7 +286,7 @@ class MainActivity : FlutterActivity() {
             return
         }
         gattClient = device.connectGatt(app, false, gattClientCallback)
-        sendMessage(message, app)
+
     }
 
     @RequiresApi(VERSION_CODES.JELLY_BEAN_MR2)
@@ -376,12 +315,12 @@ class MainActivity : FlutterActivity() {
     }
 
     @RequiresApi(VERSION_CODES.JELLY_BEAN_MR2)
-    fun connectfromaddress(address: String,message: String, app: Application) {
+    fun connectfromaddress(address: String, app: Application) {
         val device: BluetoothDevice
         adapter.let { adapter ->
             device = adapter.getRemoteDevice(address)
         }
-        connectToChatDevice(device,message, app)
+        connectToChatDevice(device, app)
     }
 
     @RequiresApi(VERSION_CODES.LOLLIPOP)
@@ -411,6 +350,7 @@ class MainActivity : FlutterActivity() {
             val isSuccess = status == BluetoothGatt.GATT_SUCCESS
             val isConnected = newState == BluetoothProfile.STATE_CONNECTED
         }
+
         @UiThread
         override fun onCharacteristicWriteRequest(
             device: BluetoothDevice?,

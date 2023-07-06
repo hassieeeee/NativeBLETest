@@ -36,10 +36,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<dynamic> _platformCallHandler(MethodCall call) async {
     switch (call.method) {
-      // case 'callMe':
-      //   print('call callMe : arguments = ${call.arguments}');
-      //   return Future.value('called from platform!');
-      //return Future.error('error message!!');
       case 'receive':
         print('call callMe : arguments = ${call.arguments}');
         setState(() {
@@ -62,6 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String params = '---';
+
   // late Map<String, String> terminalMap;
   final list = [];
   int listindex = 0;
@@ -83,26 +80,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _connect(String address) async {
     print(address);
-    Map<String,String> sendBLEmap = {
-      address : 'konnitiha'
-    };
+    Map<String, String> sendBLEmap = {address: 'konnitiha'};
     await platform.invokeMethod('connect', sendBLEmap);
   }
 
-
-  Future<void> _WriteMessage(String address) async {
-    print(address);
-    Map<String,String> sendBLEmap = {
-      address : 'konnitiha'
-    };
-    await platform.invokeMethod('connect', sendBLEmap);
+  Future<void> _WriteMessage(String content) async {
+    await platform.invokeMethod('WriteMessage', content);
   }
 
-  void _setIndex(int n){
+  void _setIndex(int n) {
     setState(() {
       listindex = n;
     });
   }
+
   @override
   initState() {
     super.initState();
@@ -131,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('スキャン！'),
                 ),
                 ElevatedButton(
-                  onPressed: () => _WriteMessage(list[listindex].address),
+                  onPressed: () => _WriteMessage('それは草'),
                   child: const Text('write'),
                 ),
               ],
@@ -150,20 +141,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       return ListBody(
                         children: [
                           ListTile(
-                            title: Text(
-                              list[index].name,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold
+                              title: Text(
+                                list[index].name,
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
                               ),
-                            ),
-                            subtitle: Text(list[index].address),
-                            trailing: Icon(Icons.sms),
-                            onTap:() {
-                              _connect(list[index].address);
-                              _setIndex(index);
-                            }
-                          ),
+                              subtitle: Text(list[index].address),
+                              trailing: Icon(Icons.sms),
+                              onTap: () {
+                                _connect(list[index].address);
+                                _setIndex(index);
+                              }),
                           Divider()
                         ],
                       );
