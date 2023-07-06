@@ -32,7 +32,7 @@ class Device {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static const platform = MethodChannel('samples.flutter.dev/string');
+  static const platform = MethodChannel('samples.flutter.dev/ble');
 
   Future<dynamic> _platformCallHandler(MethodCall call) async {
     switch (call.method) {
@@ -45,11 +45,11 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           params = call.arguments;
         });
-      case 'terminalMap':
+      case 'ScanResultTerminalMap':
         setState(() {
           print('${call.arguments}');
           Map<String, dynamic> terminalMap = jsonDecode(call.arguments);
-          //list.clear();
+          list.clear();
           terminalMap.forEach((k, v) => list.add(Device(k, v)));
 
           print(terminalMap.length);
@@ -62,29 +62,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String params = '---';
-
   // late Map<String, String> terminalMap;
   final list = [];
+  int listindex = 0;
 
   Future<void> _KotlinStart() async {
-    final String result = await platform.invokeMethod('Aisatsu', params);
+    final String result = await platform.invokeMethod('KotlinStart', params);
     setState(() {
       params = result;
     });
   }
 
-  Future<void> _World() async {
-    String str =
-        '{"makotoipod":"6D:C5:E3:A7:12:EA","允さんのGalaxy A41":"7B:49:B6:32:88:C4"}';
-    Map<String, dynamic> map = jsonDecode(str);
-    await platform.invokeMethod('World',map);
-
-    // setState(() {
-    //   params = result;
-    // });
-
-
-    // print(map.length);
+  Future<void> _Scan() async {
+    // String str =
+    //     '{"makotoipod":"6D:C5:E3:A7:12:EA","允さんのGalaxy A41":"7B:49:B6:32:88:C4"}';
+    // Map<String, dynamic> map = jsonDecode(str);
+    // await platform.invokeMethod('Scan',map);
+    await platform.invokeMethod('Scan');
   }
 
   Future<void> _connect(String address) async {
@@ -93,10 +87,22 @@ class _MyHomePageState extends State<MyHomePage> {
       address : 'konnitiha'
     };
     await platform.invokeMethod('connect', sendBLEmap);
-
   }
 
 
+  Future<void> _WriteMessage(String address) async {
+    print(address);
+    Map<String,String> sendBLEmap = {
+      address : 'konnitiha'
+    };
+    await platform.invokeMethod('connect', sendBLEmap);
+  }
+
+  void _setIndex(int n){
+    setState(() {
+      listindex = n;
+    });
+  }
   @override
   initState() {
     super.initState();
@@ -121,8 +127,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('Kotlin起動'),
                 ),
                 ElevatedButton(
-                  onPressed: _World,
-                  child: const Text('世界！'),
+                  onPressed: _Scan,
+                  child: const Text('スキャン！'),
+                ),
+                ElevatedButton(
+                  onPressed: () => _WriteMessage(list[listindex].address),
+                  child: const Text('write'),
                 ),
               ],
             ),
@@ -137,19 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: const EdgeInsets.all(8),
                     itemCount: list.length, //List(List名).length
                     itemBuilder: (BuildContext context, int index) {
-                      // return Container(
-                      //     height: 50,
-                      //     child: Row(
-                      //       children: [
-                      //         Text(list[index].name + ',' + list[index].address),
-                      //         ElevatedButton(
-                      //             onPressed: (){
-                      //               _connect(list[index].address);
-                      //             },
-                      //             child: Text('connect')
-                      //         )
-                      //       ],
-                      //     ));
                       return ListBody(
                         children: [
                           ListTile(
@@ -162,7 +159,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             subtitle: Text(list[index].address),
                             trailing: Icon(Icons.sms),
-                            onTap:() => _connect(list[index].address),
+                            onTap:() {
+                              _connect(list[index].address);
+                              _setIndex(index);
+                            }
                           ),
                           Divider()
                         ],

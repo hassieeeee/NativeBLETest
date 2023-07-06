@@ -95,7 +95,7 @@ import org.json.JSONObject
 @RequiresApi(VERSION_CODES.LOLLIPOP)
 class MainActivity : FlutterActivity() {
 
-    private val CHANNEL = "samples.flutter.dev/string"
+    private val CHANNEL = "samples.flutter.dev/ble"
 
 
     private var scanCallback: DeviceScanCallback? = null
@@ -143,16 +143,14 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL
         ).setMethodCallHandler { methodCall, result ->
-            if (methodCall.method == "Aisatsu") {
-                Log.d("TAG", "値は")
+            if (methodCall.method == "KotlinStart") {
                 val moji = methodCall.arguments<String>()!!
                 val n = rep(moji)
 
                 startServer(application)
 
-                //Thread.sleep(5000)
-
-
+                result.success(n)
+            } else if (methodCall.method == "Scan") {
                 if (!adapter.isMultipleAdvertisementSupported) {
                     Log.d(TAG, "startScan: failed")
                 }
@@ -170,21 +168,20 @@ class MainActivity : FlutterActivity() {
                         }
                         scanner?.stopScan(scanCallback)
                         //Log.d(TAG, "stopScanning: adddress : " + scanResults.values)
-                        for (map in scanResults){
-                            if(scanResults.size!=0) {
+                        for (map in scanResults) {
+                            if (scanResults.size != 0) {
                                 scanResults2.put(map.value.name, map.value.address)
-                                Log.d(TAG, "configureFlutterEngine: address : "+map.value)
+                                Log.d(TAG, "configureFlutterEngine: address : " + map.value)
                             }
                         }
-                        val str=JSONObject(scanResults2 as Map<*, *>?).toString()
+                        val str = JSONObject(scanResults2 as Map<*, *>?).toString()
                         scanCallback = null
                         Handler(Looper.getMainLooper()).post {
                             MethodChannel(
                                 flutterEngine?.dartExecutor!!.binaryMessenger,
                                 CHANNEL
-                            ).invokeMethod("terminalMap", str)
+                            ).invokeMethod("ScanResultTerminalMap", str)
                         }
-//                        result.success(scanResults2)
                     }, Companion.SCAN_PERIOD)
 
                     scanCallback = DeviceScanCallback()
@@ -198,19 +195,10 @@ class MainActivity : FlutterActivity() {
                     }
                     scanner?.startScan(scanFilters, scanSettings, scanCallback)
                 }
-                //result.success(n)
 
 
                 android.util.Log.d(TAG, "configureFlutterEngine: address" + scanResults.values)
-                result.success(n)
-            } else if (methodCall.method == "World") {
-                val name = methodCall.arguments<HashMap<String,String>>()!!
-                Log.d(TAG, "configureFlutterEngine: name : ${name.keys}")
-                Thread.sleep(5000)
-                MethodChannel(
-                    flutterEngine.dartExecutor.binaryMessenger,
-                    CHANNEL
-                ).invokeMethod("receive", "")
+
             } else if (methodCall.method == "connect") {
                 Log.d(TAG, "configureFlutterEngine: connect start")
                 val deviceinfomap = methodCall.arguments<HashMap<String,String>>()!!
@@ -238,9 +226,6 @@ class MainActivity : FlutterActivity() {
                 result.notImplemented()
             }
         }
-
-        //methodchannel呼び出し
-        //MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).invokeMethod("goodnight", "Good Night...")
 
     }
 
