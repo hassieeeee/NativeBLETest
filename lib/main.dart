@@ -58,8 +58,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String params = '---';
-
-  // late Map<String, String> terminalMap;
   final list = [];
   int listindex = 0;
 
@@ -122,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('スキャン！'),
                 ),
                 ElevatedButton(
-                  onPressed: () => _WriteMessage('それは草'),
+                  onPressed: () => _WriteMessage('「WebRTCを用いたiOS・Android間の画像ファイル共有アプリケーションの実装」というテーマで、アプリケーションを実装しました。具体的には、AirDropのようなp2pのファイル共有を、OSをまたいで行うことができるアプリケーションです。この機能を実現するためにWebRTCの技術を使用し、開発には、マルチプラットフォーム開発に向いているFlutterを使用しました。'),
                   child: const Text('write'),
                 ),
               ],

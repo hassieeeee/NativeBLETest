@@ -1,49 +1,32 @@
 package com.example.methodbletest
 
 
-import android.os.Build.VERSION_CODES
-import androidx.annotation.NonNull
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import android.util.Log
-import androidx.annotation.UiThread
 //ChatServerの内容////////////////////////////////////////////////////
+//ScanActivityの内容///////////////////////////////////////////////
+//AdvertiseActivityの内容////////////////////////////////////////////
+//RecyclerAdopterの内容//////////////////////////////////////////////
 import android.Manifest
 import android.app.Application
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattServer
-import android.bluetooth.BluetoothGattServerCallback
-import android.bluetooth.BluetoothGattService
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
-import android.bluetooth.le.AdvertiseCallback
-import android.bluetooth.le.AdvertiseData
-import android.bluetooth.le.AdvertiseSettings
-import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.*
+import android.bluetooth.le.*
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.ParcelUuid
-import androidx.core.app.ActivityCompat
-//ScanActivityの内容///////////////////////////////////////////////
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
+import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.Looper
-//AdvertiseActivityの内容////////////////////////////////////////////
+import android.os.ParcelUuid
+import android.util.Log
+import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
+import androidx.annotation.UiThread
+import androidx.core.app.ActivityCompat
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.*
-//RecyclerAdopterの内容//////////////////////////////////////////////
-import java.util.UUID
 import org.json.JSONObject
+import java.util.*
 
 
 @RequiresApi(VERSION_CODES.LOLLIPOP)
@@ -349,6 +332,9 @@ class MainActivity : FlutterActivity() {
             super.onConnectionStateChange(device, status, newState)
             val isSuccess = status == BluetoothGatt.GATT_SUCCESS
             val isConnected = newState == BluetoothProfile.STATE_CONNECTED
+            if (device != null) {
+                connectfromaddress(device.address,application)
+            }
         }
 
         @UiThread
@@ -401,11 +387,17 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        ///////////////////MTUのための追加分/////////////////////////
+        override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+            Log.d(TAG, "onMtuChanged: $mtu")
+        }
+        //////////////////////ここまで//////////////////////////////
     }
 
     @RequiresApi(VERSION_CODES.JELLY_BEAN_MR2)
     private inner class GattClientCallback(val application: Application) : BluetoothGattCallback() {
 
+        @RequiresApi(VERSION_CODES.LOLLIPOP)
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
             val isSuccess = status == BluetoothGatt.GATT_SUCCESS
@@ -414,18 +406,44 @@ class MainActivity : FlutterActivity() {
                 TAG,
                 "onConnectionStateChange: Client $gatt  success: $isSuccess  connected: $isConnected"
             )
-            if (isSuccess && isConnected) {
+            ////////////////////MTUのために追加/////////////////////////
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                // 接続成功時にMTU交渉を開始
                 if (ActivityCompat.checkSelfPermission(
                         application,
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    Log.d(TAG, "onConnectionStateChange: permission")
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
                     return
                 }
-                Log.d(TAG, "onConnectionStateChange: gattdiscoverservice")
-                gatt?.discoverServices()
+                if (gatt != null) {
+                    if (gatt.requestMtu(512)) {
+                        Log.d(TAG, "Requested MTU successfully");
+                    } else {
+                        Log.d(TAG, "Failed to request MTU");
+                    }
+                }
             }
+            ///////////////////////////////////ここまで追加分////////////////
+//            if (isSuccess && isConnected) {
+//                if (ActivityCompat.checkSelfPermission(
+//                        application,
+//                        Manifest.permission.BLUETOOTH_CONNECT
+//                    ) != PackageManager.PERMISSION_GRANTED
+//                ) {
+//                    Log.d(TAG, "onConnectionStateChange: permission")
+//                    return
+//                }
+//                Log.d(TAG, "onConnectionStateChange: gattdiscoverservice")
+//                gatt?.discoverServices()
+//            }
         }
 
         override fun onServicesDiscovered(discoveredgatt: BluetoothGatt?, status: Int) {
@@ -436,6 +454,33 @@ class MainActivity : FlutterActivity() {
                 val service = discoveredgatt?.getService(SERVICE_UUID)
                 if (service != null) {
                     messageCharacteristic = service.getCharacteristic(MESSAGE_UUID)
+                }
+            }
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            Log.d(TAG,"onMtuChanged: $mtu")
+
+            // Exchange MTU Requestが完了してからサービスの検出を開始する
+            if (gatt != null) {
+                if (ActivityCompat.checkSelfPermission(
+                        application,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return
+                }
+                if (gatt.discoverServices()) {
+                    Log.d(TAG, "Started discovering services")
+                } else {
+                    Log.d(TAG, "Failed to start discovering services")
                 }
             }
         }
